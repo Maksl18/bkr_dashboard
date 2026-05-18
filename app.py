@@ -59,17 +59,45 @@ else:
 st.title("🏙️ Інтерактивний дашборд для аналізу та прогнозування кількості звернень громадян у м. Вінниця")
 st.markdown(f"**Поточна модель прогнозування:** `{current_model}`")
 
-# Вивід всіх метрик моделі (автоматично з даних)
-st.subheader("📊 Показники точності прогнозу")
-m_col1, m_col2, m_col3, m_col4 = st.columns(4)
-with m_col1:
-    st.metric("Коефіцієнт R²", f"{model_r2:.4f}")
-with m_col2:
-    st.metric("MAE (Сер. помилка)", f"{model_mae:.3f}")
-with m_col3:
-    st.metric("RMSE (Квадр. помилка)", f"{model_rmse:.3f}")
-with m_col4:
-    st.metric("MAPE (Відносна %)", f"{model_mape:.2f} %")
+
+
+
+# --- ЗАСТОСУВАННЯ ФІЛЬТРІВ ТА РОЗРАХУНОК МЕТРИК ---
+# Перевіряємо, чи користувач обрав обидві дати (початок і кінець періоду)
+if isinstance(date_range, (list, tuple)) and len(date_range) == 2:
+    
+    # Фільтруємо історичні дані відповідно до дат, обраних користувачем
+    historical_mask = (df['Date'].dt.date >= date_range[0]) & (df['Date'].dt.date <= date_range[1]) & (df['data_type'] == 'Historical')
+    filtered_hist = df[historical_mask]
+
+    # --- БЛОК ДИНАМІЧНИХ МЕТРИК ПЕРІОДУ ---
+    st.subheader("📊 Показники активності за обраний період")
+    b_col1, b_col2, b_col3 = st.columns(3)
+
+    # Розрахунок показників на основі відфільтрованого датафрейму
+    total_appeals_period = filtered_hist['appeal_count'].sum()
+    avg_appeals_period = filtered_hist['appeal_count'].mean()
+    max_appeals_period = filtered_hist['appeal_count'].max()
+
+    # Відображення метрик у картках Streamlit
+    with b_col1:
+        st.metric("Всього звернень за період", f"{total_appeals_period:,.0f}".replace(",", " "))
+    with b_col2:
+        st.metric("Середня кількість на день", f"{avg_appeals_period:.1f}" if not pd.isna(avg_appeals_period) else "0")
+    with b_col3:
+        st.metric("Пікове навантаження (макс/день)", f"{max_appeals_period:.0f}" if not pd.isna(max_appeals_period) else "0")
+
+# Використовуємо st.expander, щоб сховати метрики під випадну панель
+with st.expander("🎯 Показники точності прогнозу моделі (глобальні)"):
+    m_col1, m_col2, m_col3, m_col4 = st.columns(4)
+    with m_col1:
+        st.metric("Коефіцієнт R²", f"{model_r2:.4f}")
+    with m_col2:
+        st.metric("MAE (Сер. помилка)", f"{model_mae:.3f}")
+    with m_col3:
+        st.metric("RMSE (Квадр. помилка)", f"{model_rmse:.3f}")
+    with m_col4:
+        st.metric("MAPE (Відносна %)", f"{model_mape:.2f} %")
 
 st.divider()
 
